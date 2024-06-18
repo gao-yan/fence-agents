@@ -460,7 +460,7 @@ AM_CONDITIONAL([xvmcompat], [test "x$xvmcompat" == "xyes"])
 # Try to detect the appropriate conf dir. Several systems have both /etc/default
 # and /etc/sysconfig but latter is always primary.
 AC_ARG_VAR(initconfdir, [directory for initscripts configuration])
-if test "x$initconfdir" = x && test "x$FENCE_VIRT" = "x1"; then
+if test "x$initconfdir" = x; then
 	AC_CHECK_FILE(/etc/conf.d, [initconfdir='$(sysconfdir)/conf.d}'], [# Gentoo/Arch
 	AC_CHECK_FILE(/etc/sysconfig, [initconfdir='$(sysconfdir)/sysconfig'], [# RedHat/Fedora/Slax/Mandriva/S
 	AC_CHECK_FILE(/etc/default, [initconfdir='$(sysconfdir)/default'], [# Debian/Ubuntu

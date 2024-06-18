@@ -329,8 +329,45 @@ def parse_sbd_devices(options):
     devices -- array of device paths
     """
 
-    devices = [str.strip(dev) \
-            for dev in str.split(options["--devices"], ",")]
+    devices = []
+    SBD_CONFIG = '@INITCONFDIR@/sbd'
+    SBD_DEV_OPT = 'SBD_DEVICE'
+    # An artificial section name for configparser to use
+    CONFIG_SECTION = 'DEFAULT'
+
+    if "--devices" in options:
+        devices = [dev.strip() \
+                for dev in options["--devices"].split(',') if dev.strip()]
+
+        if not devices:
+            # Fall back to sbd sysconfig
+            logging.warning("No SBD devices specified with 'devices' parameter.")
+
+        else:
+            logging.warning("--devices:\"%s\"", devices)
+            return devices
+
+    import configparser
+
+    try:
+        with open(SBD_CONFIG) as configfile:
+            file_content = '[%s]\n%s' % (CONFIG_SECTION, configfile.read())
+        sbd_config = configparser.ConfigParser()
+        sbd_config.read_string(file_content)
+
+    except Exception as e:
+        logging.error("Failed to read sbd config file '%s': %s", SBD_CONFIG, e)
+
+    else:
+        if SBD_DEV_OPT in sbd_config[CONFIG_SECTION]:
+            logging.warning("SBD_DEVICE=\"%s\"", sbd_config[CONFIG_SECTION][SBD_DEV_OPT])
+            devices = [dev.strip() \
+                    for dev in sbd_config[CONFIG_SECTION][SBD_DEV_OPT].strip().strip('"').split(';') \
+                    if dev.strip()]
+
+    logging.warning("SBD_DEVICE:\"%s\"", devices)
+    if not devices:
+        fail_usage("Specifiy at least one SBD device or configure '%s' in '%s' " % (SBD_DEV_OPT, SBD_CONFIG))
 
     return devices
 
@@ -342,7 +379,7 @@ def define_new_opts():
         "longopt" : "devices",
         "help":"--devices=[device_a,device_b] \
 Comma separated list of sbd devices",
-        "required" : "1",
+        "required" : "0",
         "shortdesc" : "SBD Device",
         "order": 1
         }
@@ -381,11 +418,6 @@ def main():
 which can be used in environments where sbd can be used (shared storage)."
     docs["vendorurl"] = ""
     show_docs(options, docs)
-
-    # We need to check if --devices is given and not empty.
-    if "--devices" not in options:
-        fail_usage("No SBD devices specified. \
-                At least one SBD device is required.")
 
     run_delay(options)
 
